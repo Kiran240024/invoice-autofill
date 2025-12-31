@@ -1,7 +1,7 @@
 import os
 import uuid
 from fastapi import UploadFile
-from app.coreconfig import ALLOWED_MIME_TYPES
+from app.core.config import ALLOWED_MIME_TYPES
 import shutil
 
 #get file size in bytes
