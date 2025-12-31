@@ -1,11 +1,10 @@
 import os
 import uuid
-from fastapi import UploadFile
 from app.core.config import ALLOWED_MIME_TYPES
 import shutil
 
 #get file size in bytes
-def get_file_size_mb(file):
+def get_file_size_bytes(file):
     file.file.seek(0, 2)      # move to end of file
     size_bytes = file.file.tell()
     file.file.seek(0)         # move back to start
@@ -18,7 +17,7 @@ def is_allowed_file(content_type:str)->bool:
 
 #get file category based on content type
 def get_file_category(content_type: str) -> str:
-    return ALLOWED_MIME_TYPES[content_type]
+    return ALLOWED_MIME_TYPES.get(content_type)
 
 #generate a safe unique filename
 def generate_safe_filename(original_filename):
