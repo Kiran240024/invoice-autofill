@@ -12,9 +12,6 @@ def get_file_size_mb(file):
 
     return size_bytes 
 
-
-
-
 #check if file type is allowed
 def is_allowed_file(content_type:str)->bool:
     return content_type in ALLOWED_MIME_TYPES
