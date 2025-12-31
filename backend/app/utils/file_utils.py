@@ -4,6 +4,17 @@ from fastapi import UploadFile
 from app.coreconfig import ALLOWED_MIME_TYPES
 import shutil
 
+#get file size in bytes
+def get_file_size_mb(file):
+    file.file.seek(0, 2)      # move to end of file
+    size_bytes = file.file.tell()
+    file.file.seek(0)         # move back to start
+
+    return size_bytes 
+
+
+
+
 #check if file type is allowed
 def is_allowed_file(content_type:str)->bool:
     return content_type in ALLOWED_MIME_TYPES
