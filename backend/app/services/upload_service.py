@@ -9,9 +9,8 @@ from app.utils.file_utils import (
     generate_safe_filename,
     save_file
 )
+from app.core.config import MAX_FILE_SIZE_MB, PDF_STORAGE_DIR, IMAGE_STORAGE_DIR 
 
-BASE_UPLOAD_DIR = "backend/app/storage/invoices/original"
-MAX_FILE_SIZE_MB = 10  # maximum allowed file size in MB
 
 def upload_invoice_service(file: UploadFile, db: Session):
     # 1. Validate file type
@@ -35,7 +34,11 @@ def upload_invoice_service(file: UploadFile, db: Session):
         raise HTTPException(status_code=400, detail="Unsupported file type")
 
 
-    upload_dir = os.path.join(BASE_UPLOAD_DIR, category)
+    if category == "pdf":
+        upload_dir = PDF_STORAGE_DIR
+    else:
+        upload_dir = IMAGE_STORAGE_DIR
+    
     os.makedirs(upload_dir, exist_ok=True)
 
     # 4. Generate safe filename

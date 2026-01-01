@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from app.api.routes.upload import router as upload_router
   # adjust import to your router path
 from app.db.session import engine
-from app.db.__inti__ import Base
+from app.db import Base
 # Create all tables (if not using Alembic migrations)
 Base.metadata.create_all(bind=engine)
 
