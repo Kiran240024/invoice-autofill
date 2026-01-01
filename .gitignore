@@ -1,0 +1,14 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+invoiceenv/
+
+# Environment variables
+.env
+
+# MacOS system files
+.DS_Store
