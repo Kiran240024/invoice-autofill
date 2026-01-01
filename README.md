@@ -1,8 +1,8 @@
 # invoice-autofill
 ---
-## Install required packages
+## Installation of required packages
+- Ensure Python 3 is installed
 - pip3 install fastapi uvicorn sqlalchemy psycopg2-binary python-dotenv python-multipart
-
 --
 ## Command to run
 - activate virtual environment
