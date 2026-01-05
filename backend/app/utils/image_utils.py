@@ -1,5 +1,23 @@
 import cv2
 import numpy as np
+from pathlib import Path
+
+def image_preprocessing(image_path, preprocessed_path:Path):
+    img=cv2.imread(str(image_path))
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    median_filtered = cv2.medianBlur(gray, 3) 
+    binary = cv2.adaptiveThreshold(
+    median_filtered, 255,
+    cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+    cv2.THRESH_BINARY, 25, 2
+    )
+    kernel_bg = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+    clean_bg = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel_bg)
+    deskewed=deskew(clean_bg)
+    rescaled = rescale_for_ocr(deskewed)
+    preprocessed_path.parent.mkdir(parents=True, exist_ok=True)
+    success=cv2.imwrite(str(preprocessed_path), rescaled)
+    return success
 
 def deskew(binary_img):
     # binary_img: black text (0), white background (255)
@@ -62,4 +80,3 @@ def rescale_for_ocr(image):
         image = cv2.resize(image, new_size, interpolation=cv2.INTER_AREA)
 
     return image
-
