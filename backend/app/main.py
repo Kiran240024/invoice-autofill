@@ -3,6 +3,8 @@ from app.api.routes.upload import router as upload_router
   # adjust import to your router path
 from app.db.session import engine
 from app.db import Base
+from app.api.routes.ocr import router as ocr_router
+
 # Create all tables (if not using Alembic migrations)
 Base.metadata.create_all(bind=engine)
 
@@ -13,6 +15,7 @@ app = FastAPI(
 
 # Include your router
 app.include_router(upload_router, prefix="/api")
+app.include_router(ocr_router, prefix="/api")
 
 # Optional root endpoint
 @app.get("/")
