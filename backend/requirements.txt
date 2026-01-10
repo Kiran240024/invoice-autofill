@@ -10,3 +10,5 @@ numpy
 pytesseract
 Pillow
 python-multipart
+pandas
+alembic

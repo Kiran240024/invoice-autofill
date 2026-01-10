@@ -4,8 +4,9 @@ from app.api.routes.upload import router as upload_router
 from app.db.session import engine
 from app.db import Base
 from app.api.routes.ocr import router as ocr_router
+from app.api.routes.view_uploaded_invoices import router as view_invoices_router
 
-# Create all tables (if not using Alembic migrations)
+# Create all tables if they do not exist
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -14,8 +15,9 @@ app = FastAPI(
 )
 
 # Include your router
-app.include_router(upload_router, prefix="/api")
-app.include_router(ocr_router, prefix="/api")
+app.include_router(upload_router, prefix="/invoice")
+app.include_router(view_invoices_router, prefix="/invoice") 
+app.include_router(ocr_router, prefix="/invoice")
 
 # Optional root endpoint
 @app.get("/")

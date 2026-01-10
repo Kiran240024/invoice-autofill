@@ -1,3 +1,4 @@
+from unittest import result
 from app.core.config import  BASE_DIR
 from app.utils.pdf_utils import pdf_to_images, extract_text_from_pdf
 from pathlib import Path
@@ -6,6 +7,8 @@ from sqlalchemy.orm import Session
 import os
 import cv2
 from app.utils.image_utils import image_preprocessing
+from app.utils.ocr_utils import extract_bounding_boxes
+from app.db.base import InvoiceOCRData
 
 def process_invoice_ocr(db: Session,invoice_id: int):
     # Fetch the invoice file record from the database
@@ -15,18 +18,27 @@ def process_invoice_ocr(db: Session,invoice_id: int):
     invoice_file.status="processing"
     db.commit() 
     extension=os.path.splitext(invoice_file.original_filename)[1].lower()
-    if extension==".pdf":
-        _process_pdf_invoice(db,invoice_file)
-    elif extension in [".png",".jpg",".jpeg"]:
-        _process_image_invoice(db,invoice_file)
-    else:
-        raise ValueError(f"Unsupported file type: {extension}") 
-    
-    return {
-        "invoice_id": invoice_file.id,
-        "status": invoice_file.status
-    }
+    try:
+        if extension==".pdf":
+            result=_process_pdf_invoice(db,invoice_file)
+        elif extension in [".png",".jpg",".jpeg"]:
+            result=_process_image_invoice(db,invoice_file)
+        else:
+            raise ValueError(f"Unsupported file type: {extension}") 
+        response = {"invoice_id": invoice_file.id,"status": invoice_file.status}
+        if isinstance(result, dict):
+            response.update(result)
+        return response
 
+    except Exception as e:
+        invoice_file.status="error"
+        db.commit()
+        return{
+            "invoice_id":invoice_file.id,
+            "status":invoice_file.status,
+            "error":str(e)
+        }
+    
 
 def _process_pdf_invoice(db: Session,invoice_file: InvoiceFile):
     pdf_path = Path(invoice_file.file_path)
@@ -36,9 +48,23 @@ def _process_pdf_invoice(db: Session,invoice_file: InvoiceFile):
     text_from_pdf=extract_text_from_pdf(pdf_path) #checking if pdf is digital or scanned
      #case 1: digital pdf, text extracted directly
     if text_from_pdf.strip():
-        invoice_file.status="text extracted from digital pdf"
+        invoice_file.status="ocr completed" #text extracted directly
         db.commit()
-        return
+        ocr_results=[{
+            "text":line,
+            "x":0,
+            "y":0,
+            "width":0,
+            "height":0,
+            "confidence":100
+        } for line in text_from_pdf.splitlines() if line.strip()]
+        # Save OCR results to database
+        save_ocr_results(db,invoice_file,ocr_results,source="digital")
+        return {
+            "ocr_type":"digital",
+            "pages_processed":1,
+            "message":"Digital PDF text extracted successfully"
+        }
     
     #case 2: scanned pdf, convert to images and preprocess each image
     image_paths=pdf_to_images(pdf_path,output_path)
@@ -49,8 +75,17 @@ def _process_pdf_invoice(db: Session,invoice_file: InvoiceFile):
             raise RuntimeError(f"Failed to write processed image for page {index}")
     invoice_file.status="preprocessed"
     db.commit()
-    # Next perform ocr and update invoice_file.status="processed" and then commit db
-
+    #perform ocr on each preprocessed image and aggregate text
+    for index,img_path in enumerate(image_paths,start=1):
+        preprocessed_path=(BASE_DIR / "storage/pre-processed" / f"{invoice_file.id}_page_{index}.png")
+        ocr_results=extract_bounding_boxes(preprocessed_path)
+        # Save OCR results to database
+        save_ocr_results(db=db,invoice_file=invoice_file,ocr_results=ocr_results,page_number=index,source="ocr")
+    return{
+        "ocr_type":"ocr",
+        "pages_processed": len(image_paths),
+        "message": "Scanned PDF processed with OCR successfully"
+    }
 
 def _process_image_invoice(db: Session,invoice_file: InvoiceFile):
     raw_image_path = invoice_file.file_path
@@ -63,4 +98,29 @@ def _process_image_invoice(db: Session,invoice_file: InvoiceFile):
         raise RuntimeError("Failed to write processed image")
     invoice_file.status="preprocessed"
     db.commit()
-    # Next perform ocr and update invoice_file.status="processed" and then commit db
+    #perform ocr on preprocessed image
+    ocr_results=extract_bounding_boxes(preprocessed_path)
+    # Save OCR results to database
+    save_ocr_results(db=db,invoice_file=invoice_file,ocr_results=ocr_results,source="ocr")
+    return{
+        "ocr_type":"ocr",
+        "pages_processed": 1,
+        "message": "Image processed with OCR successfully"
+    }
+
+def save_ocr_results(db: Session,invoice_file: InvoiceFile,ocr_results:list,source:str,page_number:int=1):
+    for result in ocr_results:
+        ocr_data = InvoiceOCRData(
+            invoice_id=invoice_file.id,
+            page_number=page_number,
+            x=result["x"],
+            y=result["y"],
+            width=result["width"],
+            height=result["height"],
+            text=result["text"],
+            confidence=result["confidence"],
+            source=source
+        )
+        db.add(ocr_data)
+    invoice_file.status="ocr completed"
+    db.commit()
