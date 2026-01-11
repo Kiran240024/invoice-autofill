@@ -9,6 +9,8 @@ import cv2
 from app.utils.image_utils import image_preprocessing
 from app.utils.ocr_utils import extract_bounding_boxes
 from app.db.base import InvoiceOCRData
+import pdfplumber
+
 
 def process_invoice_ocr(db: Session,invoice_id: int):
     # Fetch the invoice file record from the database
@@ -47,6 +49,9 @@ def _process_pdf_invoice(db: Session,invoice_file: InvoiceFile):
     
     text_from_pdf=extract_text_from_pdf(pdf_path) #checking if pdf is digital or scanned
      #case 1: digital pdf, text extracted directly
+    with pdfplumber.open(pdf_path) as pdf:
+        total_pages = len(pdf.pages)
+
     if text_from_pdf.strip():
         invoice_file.status="ocr completed" #text extracted directly
         db.commit()
@@ -62,7 +67,7 @@ def _process_pdf_invoice(db: Session,invoice_file: InvoiceFile):
         save_ocr_results(db,invoice_file,ocr_results,source="digital")
         return {
             "ocr_type":"digital",
-            "pages_processed":1,
+            "pages_processed":total_pages,
             "message":"Digital PDF text extracted successfully"
         }
     
