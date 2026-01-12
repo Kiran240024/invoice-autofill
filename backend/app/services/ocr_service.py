@@ -97,8 +97,8 @@ def _process_image_invoice(db: Session,invoice_file: InvoiceFile):
     img = cv2.imread(str(raw_image_path))
     if img is None:
         raise ValueError(f"Failed to read image: {raw_image_path}")
-    #preprocessed_path=(BASE_DIR / "storage/pre-processed" / f"{invoice_file.id}.png") #single image
-    #success= image_preprocessing(raw_image_path,preprocessed_path)
+    preprocessed_path=(BASE_DIR / "storage/pre-processed" / f"{invoice_file.id}.png") #single image
+    success= image_preprocessing(raw_image_path,preprocessed_path)
     if not success:
         raise RuntimeError("Failed to write processed image")
     invoice_file.status="preprocessed"
