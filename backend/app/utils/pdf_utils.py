@@ -7,17 +7,18 @@ def extract_text_from_pdf(pdf_path:Path)->str:
     full_text=""
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
-            text=page.extract_text() 
+            text=page.extract_text() #returns list of dictionaries representing words and their positions
             if text:
-                full_text+=text+"\n"
+                full_text+=text + "\n"
     return full_text
+    # Return empty list if no words found in the PDF
 
 #convert pdf to images page by page
 def pdf_to_images(pdf_path:Path, output_folder:Path): 
     output_folder.mkdir(parents=True, exist_ok=True) # Create output folder if it doesn't exist
     
     # Convert PDF to images, each page as a separate image
-    images = convert_from_path(pdf_path,dpi=300)
+    images = convert_from_path(str(pdf_path),dpi=300)
    
     # Save each image to the output folder
     image_paths = []

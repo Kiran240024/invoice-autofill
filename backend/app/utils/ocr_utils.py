@@ -10,14 +10,14 @@ def extract_bounding_boxes(image_path):
     df = pytesseract.image_to_data(
         img,
         output_type=pytesseract.Output.DATAFRAME,
-        config="--oem 3 --psm 6"
+        config="--oem 3 --psm 11"
     ) # Get OCR data as a DataFrame
 
     df = df.dropna() # Remove rows with NaN values
     # Ensure confidence is numeric before filtering
     if "conf" in df.columns:
         df["conf"] = pd.to_numeric(df["conf"], errors="coerce") # Convert conf to numeric, coercing errors to NaN
-        df = df[df.conf > 50]
+        df = df[df.conf > 10]
     
     # Convert DataFrame → structured dicts
     ocr_results = []
