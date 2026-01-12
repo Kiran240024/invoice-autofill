@@ -1,4 +1,3 @@
-from unittest import result
 from app.core.config import  BASE_DIR
 from app.utils.pdf_utils import pdf_to_images, extract_text_from_pdf
 from pathlib import Path
@@ -44,25 +43,24 @@ def process_invoice_ocr(db: Session,invoice_id: int):
 
 def _process_pdf_invoice(db: Session,invoice_file: InvoiceFile):
     pdf_path = Path(invoice_file.file_path)
-    output_path=BASE_DIR/"storage/temp"/str(invoice_file.id) #temporary folder for pdf pages
-    output_path.mkdir(parents=True, exist_ok=True)
-    
-    text_from_pdf=extract_text_from_pdf(pdf_path) #checking if pdf is digital or scanned
      #case 1: digital pdf, text extracted directly
+    words_from_pdf=extract_text_from_pdf(pdf_path)
     with pdfplumber.open(pdf_path) as pdf:
         total_pages = len(pdf.pages)
 
-    if text_from_pdf.strip():
+    if words_from_pdf:
         invoice_file.status="ocr completed" #text extracted directly
         db.commit()
-        ocr_results=[{
-            "text":line,
-            "x":0,
-            "y":0,
-            "width":0,
-            "height":0,
-            "confidence":100
-        } for line in text_from_pdf.splitlines() if line.strip()]
+        ocr_results=[]
+        for word in words_from_pdf:
+            ocr_results.append({
+                "text": word["text"],
+                "x": int(word["x0"]),
+                "y": int(word["top"]),
+                "width": int(word["x1"] - word["x0"]),
+                "height": int(word["bottom"] - word["top"]),
+                "confidence": 100 # Assuming high confidence for digital text extraction
+            })
         # Save OCR results to database
         save_ocr_results(db,invoice_file,ocr_results,source="digital")
         return {
@@ -72,6 +70,8 @@ def _process_pdf_invoice(db: Session,invoice_file: InvoiceFile):
         }
     
     #case 2: scanned pdf, convert to images and preprocess each image
+    output_path=BASE_DIR/"storage/temp"/str(invoice_file.id) #temporary folder for pdf pages
+    output_path.mkdir(parents=True, exist_ok=True)
     image_paths=pdf_to_images(pdf_path,output_path)
     for index,img_path in enumerate(image_paths,start=1):
         preprocessed_path=(BASE_DIR / "storage/pre-processed" / f"{invoice_file.id}_page_{index}.png")
@@ -97,14 +97,14 @@ def _process_image_invoice(db: Session,invoice_file: InvoiceFile):
     img = cv2.imread(str(raw_image_path))
     if img is None:
         raise ValueError(f"Failed to read image: {raw_image_path}")
-    preprocessed_path=(BASE_DIR / "storage/pre-processed" / f"{invoice_file.id}.png") #single image
-    success= image_preprocessing(raw_image_path,preprocessed_path)
+    #preprocessed_path=(BASE_DIR / "storage/pre-processed" / f"{invoice_file.id}.png") #single image
+    #success= image_preprocessing(raw_image_path,preprocessed_path)
     if not success:
         raise RuntimeError("Failed to write processed image")
     invoice_file.status="preprocessed"
     db.commit()
     #perform ocr on preprocessed image
-    ocr_results=extract_bounding_boxes(preprocessed_path)
+    ocr_results=extract_bounding_boxes(raw_image_path)
     # Save OCR results to database
     save_ocr_results(db=db,invoice_file=invoice_file,ocr_results=ocr_results,source="ocr")
     return{

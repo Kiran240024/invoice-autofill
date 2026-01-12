@@ -3,15 +3,14 @@ from pathlib import Path
 import pdfplumber
 
 #read text directly from digital pdfs
-def extract_text_from_pdf(pdf_path:Path)->str:
-    full_text=""
+def extract_text_from_pdf(pdf_path:Path)->list:
+    words_list=[]
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
-            text=page.extract_text() #returns list of dictionaries representing words and their positions
-            if text:
-                full_text+=text + "\n"
-    return full_text
-    # Return empty list if no words found in the PDF
+            words=page.extract_words() #returns list of dictionaries representing words and their positions
+            if words:
+                words_list.extend(words)
+    return words_list # Return empty list if no words found in the PDF
 
 #convert pdf to images page by page
 def pdf_to_images(pdf_path:Path, output_folder:Path): 
