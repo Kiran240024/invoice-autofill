@@ -13,15 +13,11 @@ invoiceenv/
 # MacOS system files
 .DS_Store
 
-# Uploaded invoices (DO NOT COMMIT)
-app/storage/invoices/originals/images/*
-app/storage/invoices/originals/pdfs/*
+# Ignore everything inside backend storage
+backend/app/storage/**/*
 
-# Preprocessed images
-app/storage/pre-processed/*
+# Allow directories to exist
+!backend/app/storage/**/
 
-# Temporary files
-app/storage/temp/*
-
-# Keep folders
-!app/storage/**/.gitkeep
+# Allow gitkeep files
+!backend/app/storage/**/.gitkeep
