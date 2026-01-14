@@ -12,3 +12,12 @@ invoiceenv/
 
 # MacOS system files
 .DS_Store
+
+# Ignore everything inside backend storage
+backend/app/storage/**/*
+
+# Allow directories to exist
+!backend/app/storage/**/
+
+# Allow gitkeep files
+!backend/app/storage/**/.gitkeep
