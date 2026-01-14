@@ -11,8 +11,8 @@ IMAGE_STORAGE_DIR=STORAGE_DIR/"images"
 #valid file extensions
 ALLOWED_MIME_TYPES={
     "application/pdf":"pdf",
-    "image/jpeg":"jpeg",
-    "image/png":"png"
+    "image/jpeg":"image",
+    "image/png":"image"
 }
 
 #max allowed file size in bytes
