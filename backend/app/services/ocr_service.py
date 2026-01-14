@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 import os
 import cv2
 from app.utils.image_utils import image_preprocessing
-from app.utils.ocr_utils import extract_bounding_boxes
+from app.utils.ocr_utils import extract_bounding_boxes,merge_ocr_results
 from app.db.base import InvoiceOCRData
 import pdfplumber
 
@@ -83,9 +83,11 @@ def _process_pdf_invoice(db: Session,invoice_file: InvoiceFile):
     #perform ocr on each preprocessed image and aggregate text
     for index,img_path in enumerate(image_paths,start=1):
         preprocessed_path=(BASE_DIR / "storage/pre-processed" / f"{invoice_file.id}_page_{index}.png")
-        ocr_results=extract_bounding_boxes(preprocessed_path)
+        prep_ocr_results=extract_bounding_boxes(preprocessed_path)
+        raw_ocr_results=extract_bounding_boxes(img_path)
         # Save OCR results to database
-        save_ocr_results(db=db,invoice_file=invoice_file,ocr_results=ocr_results,page_number=index,source="ocr")
+        merged_ocr_results=merge_ocr_results(raw_ocr_results,prep_ocr_results)
+        save_ocr_results(db=db,invoice_file=invoice_file,ocr_results=merged_ocr_results,page_number=index,source="merged")
     return{
         "ocr_type":"ocr",
         "pages_processed": len(image_paths),
@@ -104,9 +106,11 @@ def _process_image_invoice(db: Session,invoice_file: InvoiceFile):
     invoice_file.status="preprocessed"
     db.commit()
     #perform ocr on preprocessed image
-    ocr_results=extract_bounding_boxes(raw_image_path)
+    prep_ocr_results=extract_bounding_boxes(preprocessed_path)
+    raw_ocr_results=extract_bounding_boxes(raw_image_path)
     # Save OCR results to database
-    save_ocr_results(db=db,invoice_file=invoice_file,ocr_results=ocr_results,source="ocr")
+    merged_ocr_results=merge_ocr_results(raw_ocr_results,prep_ocr_results)
+    save_ocr_results(db=db,invoice_file=invoice_file,ocr_results=merged_ocr_results,source="merged")
     return{
         "ocr_type":"ocr",
         "pages_processed": 1,
