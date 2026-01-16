@@ -5,6 +5,7 @@ from app.db.session import engine
 from app.db import Base
 from app.api.routes.ocr import router as ocr_router
 from app.api.routes.view_uploaded_invoices import router as view_invoices_router
+from app.api.routes.text_standard_router import router as text_standard_router
 
 # Create all tables if they do not exist
 Base.metadata.create_all(bind=engine)
@@ -18,6 +19,7 @@ app = FastAPI(
 app.include_router(upload_router, prefix="/invoice")
 app.include_router(view_invoices_router, prefix="/invoice") 
 app.include_router(ocr_router, prefix="/invoice")
+app.include_router(text_standard_router, prefix="/invoice")
 
 # Optional root endpoint
 @app.get("/")
