@@ -31,8 +31,8 @@ def image_preprocessing(image_path, preprocessed_path: Path) -> bool:
         img = _apply_critical_step(img, to_grayscale, "Grayscale conversion")
         
         # Optional steps with graceful degradation
-        img = _apply_optional_step(img, _resize_image, "Image resizing")
         img = _apply_optional_step(img, _deskew_image, "Deskewing")
+        img = _apply_optional_step(img, _resize_image, "Image resizing")
         img = _apply_optional_step(img, _remove_noise, "Noise removal")
         img = _apply_optional_step(img, _normalize_background, "Background normalization")
         img = _apply_optional_step(img, _enhance_contrast, "Contrast enhancement")

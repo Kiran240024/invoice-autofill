@@ -16,6 +16,11 @@ BLOCK_ANCHORS = {
         "tax invoice",  "original for"
     ],
 
+    "INVOICE_METADATA": [
+        "invoice no", "invoice number", "invoice#", "invoice date",
+        "date", "irn", "gst invoice"
+    ],
+
     "SELLER_DETAILS": [
     "email","pvt", "ltd", "limited", "india", "textiles",
     "mills", "synthetics", "industries", "enterprise",
@@ -37,7 +42,7 @@ BLOCK_ANCHORS = {
 
     "ITEM_TABLE": [
         "description", "hsn", "qty", "quantity",
-        "rate", "bags", "total value"
+        "rate", "bags", "total value", "item", "sl no"
     ],
 
     "TAX_SUMMARY": [

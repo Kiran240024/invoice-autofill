@@ -1,7 +1,18 @@
 import re
 
-keywords=["invoice","date","gst","gstin","total","amount","due","bill","to","from","address","ship","tax","number","no.","invoice#","invoice number","irn","rate","tax","qty","quantity","description","hsn","eway"]
-company_keywords=["company","corp","ltd","inc","llc","pvt","enterprise","pvt ltd","co.","inc.","corporation","industries","group","solutions","services","associates","textiles","technologies","systems","international","global"]
+keywords=[
+    "invoice","date","gst","gstin","total","amount","due","bill","to","from",
+    "address","ship","tax","number","no.","invoice#","invoice number","irn",
+    "rate","qty","quantity","description","hsn","eway","billed","buyer","receiver",
+    "bank","account","ifsc","branch","terms","condition","cgst","sgst","igst",
+    "subtotal","item","sl no","email","pin","pincode","post"
+]
+
+company_keywords=[
+    "company","corp","ltd","inc","llc","pvt","enterprise","pvt ltd","co.","inc.",
+    "corporation","industries","group","solutions","services","associates","textiles",
+    "technologies","systems","international","global","mills","synthetics","traders"
+]
 
 def is_company_name(text: str) -> bool:
     """Check if line appears to be a company name"""
@@ -21,35 +32,51 @@ def is_company_name(text: str) -> bool:
     
     return False
 
-def filter_lines(lines:list[dict])->list[dict]:
-    filtered_lines=[]
+
+def filter_lines(lines: list[dict]) -> list[dict]:
+    """Filter lines to keep only meaningful invoice data.
+    
+    Keeps:
+    - Lines with numbers (amounts, quantities, dates, etc.)
+    - Lines with invoice keywords
+    - Company names
+    - Lines with contact info (email, phone, address)
+    
+    Removes:
+    - Very short lines (< 5 chars)
+    - Punctuation-only lines
+    - Common noise patterns
+    """
+    filtered_lines = []
+    
     for line in lines:
-        text=line['text'].strip()
-        lower=text.lower()
+        text = line['text'].strip()
+        lower = text.lower()
 
-        #drop very short lines
-        if len(text)<5:
+        # Drop very short lines
+        if len(text) < 5:
             continue
 
-        #drop punctuation only lines
-        if not re.search(r'[a-zA-Z0-9]',text):
+        # Drop punctuation only lines
+        if not re.search(r'[a-zA-Z0-9]', text):
             continue
 
-        #keep lines with numbers
-        if re.search(r'\d',text):
+        # Keep lines with numbers (amounts, quantities, dates, HSN codes, etc.)
+        if re.search(r'\d', text):
             filtered_lines.append(line)
             continue
 
+        # Keep lines with invoice-related keywords
         if any(kw in lower for kw in keywords):
             filtered_lines.append(line)
             continue
 
-        #keep company names
+        # Keep company names
         if is_company_name(text):
             filtered_lines.append(line)
             continue
         
-        #else drop the line
+        # Drop everything else (noise)
         continue
 
     return filtered_lines
