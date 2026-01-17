@@ -10,14 +10,17 @@ def extract_bounding_boxes(image_path):
     df = pytesseract.image_to_data(
         img,
         output_type=pytesseract.Output.DATAFRAME,
-        config="--oem 3 --psm 11"
+        config="--oem 3 --psm 6" #recommended psm for invoices
     ) # Get OCR data as a DataFrame
 
-    df = df.dropna() # Remove rows with NaN values
+    # Clean DataFrame: remove empty text entries
+    df = df[df["text"].notna()] 
+    df = df[df["text"].str.strip() != ""]
+
     # Ensure confidence is numeric before filtering
     if "conf" in df.columns:
         df["conf"] = pd.to_numeric(df["conf"], errors="coerce") # Convert conf to numeric, coercing errors to NaN
-        df = df[df.conf >= 0]
+        df = df[df.conf >= 40]
     
     # Convert DataFrame → structured dicts
     ocr_results = []
@@ -37,6 +40,7 @@ def extract_bounding_boxes(image_path):
         })
 
     return ocr_results
+
 def merge_ocr_results(raw,prep):
     """
     Merges OCR results from raw and preprocessed images
@@ -47,26 +51,33 @@ def merge_ocr_results(raw,prep):
 
     # Step 1: iterate through raw OCR words
     for r in raw:
-        match = None
-        match_index = None
+        best_match = None
+        best_match_index = None
+        best_iou=0.0
 
         for idx, p in enumerate(prep):
             if idx in used_prep_indices:
                 continue
+            
+            #check if the boxes belong to same line as preprocessing and raw may shift y a bit
+            if(abs(r["y"] - p["y"]) > max(r["height"],p["height"])):
+                continue
+            current_iou=iou(
+                (r["x"],r["y"],r["width"],r["height"]),
+                (p["x"],p["y"],p["width"],p["height"])
+            )
 
-            if iou(
-                (r["x"], r["y"], r["width"], r["height"]),
-                (p["x"], p["y"], p["width"], p["height"])
-            ) > 0.4:
-                match = p
-                match_index = idx
-                break
+            #word-level IoU threshold
+            if current_iou >=0.15 and current_iou > best_iou:
+                best_iou=current_iou
+                best_match=p
+                best_match_index=idx
 
-        if match:
+        if best_match:
             # pick higher-confidence word
-            best = r if r["confidence"] >= match["confidence"] else match
+            best = r if r["confidence"] >= best_match["confidence"] else best_match
             merged.append(best)
-            used_prep_indices.add(match_index)
+            used_prep_indices.add(best_match_index)
         else:
             # raw-only word
             merged.append(r)
@@ -75,6 +86,8 @@ def merge_ocr_results(raw,prep):
     for idx, p in enumerate(prep):
         if idx not in used_prep_indices:
             merged.append(p)
+    #Step 3: sort merged words top-to-bottom, left-to-right
+    merged.sort(key=lambda w: (w["y"], w["x"]))
 
     return merged
 
@@ -103,3 +116,10 @@ def iou(box1, box2):
         return 0.0
 
     return inter_area / union_area
+
+def score(words):
+    return (
+        len(words) * 1.0 +
+        sum(w["confidence"] for w in words) / max(len(words), 1)
+    )
+

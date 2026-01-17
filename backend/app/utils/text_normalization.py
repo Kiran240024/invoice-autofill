@@ -1,8 +1,9 @@
 import unicodedata
 from sqlalchemy.orm import Session
 from app.db.base import InvoiceOCRData
+import re
 
-def get_normalized_ocr_words(db: Session, invoice_id: int):
+def get_normalized_ocr_words(db: Session, invoice_id: int)-> list[dict]:
     rows = (
         db.query(InvoiceOCRData)
         .filter(InvoiceOCRData.invoice_id == invoice_id)
@@ -52,4 +53,10 @@ def normalize_unicode(text: str) -> str:
     }
     for k, v in LIGATURE_FIXES.items():
         text = text.replace(k, v)
+    
+    # whitespace cleanup
+    text=re.sub(r"[\t\r\n]+"," ",text)
+    text=re.sub(r"\s{2,}"," ",text)
+    text=text.strip()
+
     return text

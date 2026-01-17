@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 import os
 import cv2
 from app.utils.image_utils import image_preprocessing
-from app.utils.ocr_utils import extract_bounding_boxes,merge_ocr_results
+from app.utils.ocr_utils import extract_bounding_boxes,merge_ocr_results,score
 from app.db.base import InvoiceOCRData
 import pdfplumber
 
@@ -108,7 +108,7 @@ def _process_image_invoice(db: Session,invoice_file: InvoiceFile):
     #perform ocr on preprocessed image
     prep_ocr_results=extract_bounding_boxes(preprocessed_path)
     raw_ocr_results=extract_bounding_boxes(raw_image_path)
-    # Save OCR results to database
+     #Save OCR results to database
     merged_ocr_results=merge_ocr_results(raw_ocr_results,prep_ocr_results)
     save_ocr_results(db=db,invoice_file=invoice_file,ocr_results=merged_ocr_results,source="merged")
     return{
