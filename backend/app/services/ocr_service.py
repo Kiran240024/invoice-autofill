@@ -1,5 +1,5 @@
 from app.core.config import  BASE_DIR
-from app.utils.pdf_utils import pdf_to_images, extract_text_from_pdf
+from app.utils.pdf_utils import pdf_to_images, extract_text_from_pdf,word_inside_any_table
 from pathlib import Path
 from app.db.base import InvoiceFile
 from sqlalchemy.orm import Session
@@ -22,8 +22,8 @@ def process_invoice_ocr(db: Session,invoice_id: int):
     try:
         if extension==".pdf":
             result=_process_pdf_invoice(db,invoice_file)
-        elif extension in [".png",".jpg",".jpeg"]:
-            result=_process_image_invoice(db,invoice_file)
+        #elif extension in [".png",".jpg",".jpeg"]:
+            #result=_process_image_invoice(db,invoice_file)
         else:
             raise ValueError(f"Unsupported file type: {extension}") 
         response = {"invoice_id": invoice_file.id,"status": invoice_file.status}
@@ -43,34 +43,70 @@ def process_invoice_ocr(db: Session,invoice_id: int):
 
 def _process_pdf_invoice(db: Session,invoice_file: InvoiceFile):
     pdf_path = Path(invoice_file.file_path)
-     #case 1: digital pdf, text extracted directly
-    words_from_pdf=extract_text_from_pdf(pdf_path)
+    #case 1: digital pdf, text extracted directly
+    ocr_results=[]
+    words_from_pdf,tables_from_pdf=extract_text_from_pdf(pdf_path)
     with pdfplumber.open(pdf_path) as pdf:
         total_pages = len(pdf.pages)
 
+    # 2) Save tables also as OCR-like "cell texts"
+    if tables_from_pdf:
+        for t_idx, tinfo in enumerate(tables_from_pdf):
+            bbox = tinfo["bbox"]
+            table = tinfo["table"]
+            page_no = tinfo["page"]
+
+            for r_idx, row in enumerate(table):
+                row_cells = [
+                    str(cell).strip().replace("\n", " ")
+                    for cell in row
+                    if cell and str(cell).strip()
+                ]
+
+                if not row_cells:
+                    continue
+
+                row_text = " | ".join(row_cells) 
+
+                ocr_results.append({
+                        "text": row_text,
+                        "x": int(bbox[0]),
+                        "y": int(bbox[1]) + (r_idx * 20), 
+                        "width": int(bbox[2] - bbox[0]),
+                        "height": int(bbox[3] - bbox[1]),
+                        "confidence": 100,
+                        "page": page_no   
+                    })
+
+
     if words_from_pdf:
-        invoice_file.status="ocr completed" #text extracted directly
-        db.commit()
-        ocr_results=[]
+        
         for word in words_from_pdf:
+            if word_inside_any_table(word, tables_from_pdf):
+                continue
             ocr_results.append({
                 "text": word["text"],
                 "x": int(word["x0"]),
                 "y": int(word["top"]),
                 "width": int(word["x1"] - word["x0"]),
                 "height": int(word["bottom"] - word["top"]),
-                "confidence": 100 # Assuming high confidence for digital text extraction
+                "confidence": 100,
+                "page": word["page"]  # Assuming high confidence for digital text extraction
             })
-        # Save OCR results to database
-        save_ocr_results(db,invoice_file,ocr_results,source="digital")
+    if ocr_results:
+        invoice_file.status = "ocr completed"
+        db.commit()
+
+        save_ocr_results(db, invoice_file, ocr_results, source="digital")
+
         return {
-            "ocr_type":"digital",
-            "pages_processed":total_pages,
-            "message":"Digital PDF text extracted successfully"
+            "ocr_type": "digital",
+            "pages_processed": total_pages,
+            "message": "Digital PDF extracted: table cells + non-table words saved"
         }
     
     #case 2: scanned pdf, convert to images and preprocess each image
-    output_path=BASE_DIR/"storage/temp"/str(invoice_file.id) #temporary folder for pdf pages
+''' output_path=BASE_DIR/"storage/temp"/str(invoice_file.id) #temporary folder for pdf pages
     output_path.mkdir(parents=True, exist_ok=True)
     image_paths=pdf_to_images(pdf_path,output_path)
     for index,img_path in enumerate(image_paths,start=1):
@@ -115,13 +151,13 @@ def _process_image_invoice(db: Session,invoice_file: InvoiceFile):
         "ocr_type":"ocr",
         "pages_processed": 1,
         "message": "Image processed with OCR successfully"
-    }
+    }'''
 
 def save_ocr_results(db: Session,invoice_file: InvoiceFile,ocr_results:list,source:str,page_number:int=1):
     for result in ocr_results:
         ocr_data = InvoiceOCRData(
             invoice_id=invoice_file.id,
-            page_number=page_number,
+            page_number=result["page"],
             x=result["x"],
             y=result["y"],
             width=result["width"],

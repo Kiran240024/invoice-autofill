@@ -43,19 +43,32 @@ def reconstruct_lines(
             if abs(word["y"] - current_y) <= y_threshold:
                 current_line.append(word)
             else:
-                # Finish current line
-                reconstructed_lines.append(
-                    _finalize_line(current_line, page)
-                )
-                # Start new line
+                current_line.sort(key=lambda w: w["x"])
+                raw_text = " ".join(w["text"] for w in current_line)
+
+                avg_y = sum(w["y"] for w in current_line) // len(current_line)
+
+                reconstructed_lines.append({
+                    "page": page,
+                    "y": avg_y,
+                    "text": raw_text
+                })
+
                 current_line = [word]
                 current_y = word["y"]
 
         # Add last line
         if current_line:
-            reconstructed_lines.append(
-                _finalize_line(current_line, page)
-            )
+            current_line.sort(key=lambda w: w["x"])
+            raw_text = " ".join(w["text"] for w in current_line)
+
+            avg_y = sum(w["y"] for w in current_line) // len(current_line)
+
+            reconstructed_lines.append({
+                "page": page,
+                "y": avg_y,
+                "text": raw_text
+            })
 
     return reconstructed_lines
 
