@@ -2,6 +2,7 @@ import unicodedata
 from sqlalchemy.orm import Session
 from app.db.base import InvoiceOCRData
 import re
+from typing import List, Dict
 
 def get_normalized_ocr_words(db: Session, invoice_id: int)-> list[dict]:
     rows = (
@@ -60,3 +61,26 @@ def normalize_unicode(text: str) -> str:
     text=text.strip()
 
     return text
+
+ROLE_PRIORITY = [
+    ("DELIVERY_AT", ["SHIP TO", "SHIPPING ADDRESS", "DELIVERY AT", "CONSIGNEE"]),
+    ("BILLED_TO", ["BILL TO", "BILLING ADDRESS", "BUYER"]),
+    ("SELLER", ["SOLD BY", "SELLER", "SUPPLIER"]),
+    ("INVOICE_META", ["INVOICE NO", "INVOICE DATE", "ORDER NO"]),
+    ("BANK", ["BANK", "A/C", "ACCOUNT", "IFSC", "BRANCH"]),
+]
+def tag_words_with_role(words):
+    current_role = None
+
+    for w in words:
+        text = w["text"].upper()
+
+        # 🔑 priority-based override
+        for role, triggers in ROLE_PRIORITY:
+            if any(t in text for t in triggers):
+                current_role = role
+                break
+
+        w["role"] = current_role
+
+    return words

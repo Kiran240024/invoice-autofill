@@ -1,5 +1,5 @@
 from app.core.config import  BASE_DIR
-from app.utils.pdf_utils import pdf_to_images, extract_text_from_pdf,word_inside_any_table
+from app.utils.pdf_utils import pdf_to_images, extract_words_from_pdf
 from pathlib import Path
 from app.db.base import InvoiceFile
 from sqlalchemy.orm import Session
@@ -45,54 +45,11 @@ def _process_pdf_invoice(db: Session,invoice_file: InvoiceFile):
     pdf_path = Path(invoice_file.file_path)
     #case 1: digital pdf, text extracted directly
     ocr_results=[]
-    words_from_pdf,tables_from_pdf=extract_text_from_pdf(pdf_path)
+    ocr_results=extract_words_from_pdf(pdf_path)
+    
     with pdfplumber.open(pdf_path) as pdf:
         total_pages = len(pdf.pages)
-
-    # 2) Save tables also as OCR-like "cell texts"
-    if tables_from_pdf:
-        for t_idx, tinfo in enumerate(tables_from_pdf):
-            bbox = tinfo["bbox"]
-            table = tinfo["table"]
-            page_no = tinfo["page"]
-
-            for r_idx, row in enumerate(table):
-                row_cells = [
-                    str(cell).strip().replace("\n", " ")
-                    for cell in row
-                    if cell and str(cell).strip()
-                ]
-
-                if not row_cells:
-                    continue
-
-                row_text = " | ".join(row_cells) 
-
-                ocr_results.append({
-                        "text": row_text,
-                        "x": int(bbox[0]),
-                        "y": int(bbox[1]) + (r_idx * 20), 
-                        "width": int(bbox[2] - bbox[0]),
-                        "height": int(bbox[3] - bbox[1]),
-                        "confidence": 100,
-                        "page": page_no   
-                    })
-
-
-    if words_from_pdf:
-        
-        for word in words_from_pdf:
-            if word_inside_any_table(word, tables_from_pdf):
-                continue
-            ocr_results.append({
-                "text": word["text"],
-                "x": int(word["x0"]),
-                "y": int(word["top"]),
-                "width": int(word["x1"] - word["x0"]),
-                "height": int(word["bottom"] - word["top"]),
-                "confidence": 100,
-                "page": word["page"]  # Assuming high confidence for digital text extraction
-            })
+    
     if ocr_results:
         invoice_file.status = "ocr completed"
         db.commit()

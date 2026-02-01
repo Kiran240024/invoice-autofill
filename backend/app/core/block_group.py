@@ -1,65 +1,19 @@
-BLOCK_ORDER=[
-    "HEADER",
-    "SELLER_DETAILS",
-    "INVOICE_METADATA",
-    "BUYER_DETAILS",    
-    "SHIP_TO",
-    "ITEM_TABLE",
-    "TAX_SUMMARY",
-    "BANK_DETAILS",
-    "TERMS_AND_CONDITIONS",
-    "FOOTER"
+BLOCKS=[
+    "SELLER",
+    "INVOICE DETAILS",
+    "BILLED TO",
+    "SHIP TO",
+    "ITEMS_TABLE",
+    "TAX and TOTALS",
+    "BANK DETAILS"
 ]
 
-BLOCK_ANCHORS = {
-    "HEADER": [
-        "tax invoice",  "original for"
-    ],
-
-    "INVOICE_METADATA": [
-        "invoice no", "invoice number", "invoice#", "invoice date",
-        "date", "irn", "gst invoice"
-    ],
-
-    "SELLER_DETAILS": [
-    "email","pvt", "ltd", "limited", "india", "textiles",
-    "mills", "synthetics", "industries", "enterprise",
-    "enterprises", "traders", "corporation", "company",
-    "co.", "inc", "inc.", "llc", "pvt ltd", "solutions",
-    "technologies", "services", "associates", "global",
-    "international", "systems","road","pin","post","pincode","email","gstin"
-    ],
-
-    "BUYER_DETAILS": [
-        "billed to", "bill to", "buyer",
-        "receiver", "details of receiver"
-    ],
-
-    "SHIP_TO": [
-        "ship to", "shipped to", "delivery at",
-        "deliver to", "consignee", "details of consignee"
-    ],
-
-    "ITEM_TABLE": [
-        "description", "hsn", "qty", "quantity",
-        "rate", "bags", "total value", "item", "sl no"
-    ],
-
-    "TAX_SUMMARY": [
-        "taxable value", "cgst", "sgst",
-        "igst", "round off", "invoice total", "total due","subtotal","tax"
-    ],
-
-    "BANK_DETAILS": [
-        "bank", "account no", "ifsc", "branch"
-    ],
-
-    "TERMS_AND_CONDITIONS": [
-        "terms & condition", "terms and condition","we assure you"
-    ],
-
-    "FOOTER": [
-        "authorised signatory", "verified by",
-        "prepared by", "for ","thank you for your business"
-    ]
+BLOCKS_KEYWORDS={
+    "SELLER": ["seller", "from", "vendor", "supplier","textile","company","unit","corp","ltd","limited"],
+    "INVOICE DETAILS": ["invoice","bill","date","number","no.","due date","invoice #","invoice number"],
+    "BILLED TO": ["bill to","billed to","customer","client","buyer"],
+    "SHIP TO": ["ship to","shipping address","deliver to","delivery address","delivery at"],
+    "ITEMS_TABLE": ["description","qty","quantity","unit price","price","amount","total","item","items","rate","tax","discount","hsn"],
+    "TAX and TOTALS": ["subtotal","total","tax","amount due","balance due","grand total","total amount","net total","payable","sgst","cgst","igst"],
+    "BANK DETAILS": ["bank","account","ifsc","branch","swift","iban"]
 }
